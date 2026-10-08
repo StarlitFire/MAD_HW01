@@ -44,7 +44,84 @@ class CalcControlScreen extends StatefulWidget {
 }
 
 class _CalcControlScreenState extends State<CalcControlScreen> {
-  double ans = 0;
+  bool divideZeroError = false;
+  bool isInputNum = false;
+  double ans = 200;
+  double currNum = 0;
+  double prevNum = 0;
+  int numDigits = 10;
+  String prevAction = '';
+
+  void _triggerNum(int numButton) {
+    if (divideZeroError || !isInputNum) {
+      setState(() {
+        ans = 0;
+        currNum = numButton.toDouble();
+        isInputNum = true;
+        divideZeroError = false;
+      });
+    } else {
+      setState(() {
+        currNum = double.parse('$currNum$numButton');
+      });
+    }
+  }
+
+  void _switchSign() {
+    if (isInputNum) {
+      setState(() {
+        currNum *= -1;
+      });
+    } else {
+      setState(() {
+        ans *= -1;
+      });
+    }
+  }
+
+  void _clearCalc() {
+    setState(() {
+      ans = 0;
+      currNum = 0;
+      prevNum = 0;
+      isInputNum = false;
+      divideZeroError = false;
+    });
+  }
+
+  void _multiply() {
+    setState(() {
+      ans = prevNum * currNum;
+      isInputNum = false;
+    });
+  }
+
+  void _add() {
+    setState(() {
+      ans = prevNum + currNum;
+      isInputNum = false;
+    });
+  }
+
+  void _subtract() {
+    setState(() {
+      ans = prevNum - currNum;
+      isInputNum = false;
+    });
+  }
+
+  void _divide() {
+    if (currNum == 0) {
+      setState(() {
+        divideZeroError = true;
+      });
+    } else {
+      setState(() {
+        ans = prevNum / currNum;
+        isInputNum = false;
+      });
+    }
+  }
 
   void _triggerAction(String actionName) {}
 
@@ -104,11 +181,23 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                   // Current Number
                   Column(
                     children: [
-                      Text(
-                        "$ans",
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: EdgeInsetsDirectional.only(bottom: 20),
+                        child: Text(
+                          divideZeroError
+                              ? "Cannot Divide by Zero"
+                              : isInputNum
+                              ? (currNum == currNum.truncateToDouble())
+                                    ? "${currNum.truncate()}"
+                                    : "${(currNum * 10 * numDigits).round() / (10 * numDigits)}"
+                              : (ans == ans.truncateToDouble())
+                              ? "${ans.truncate()}"
+                              : "${(ans * 10 * numDigits).round() / 10 * numDigits}",
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
 
@@ -117,25 +206,25 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: 'AC',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _clearCalc(),
                             width: 75,
                           ),
                           CalcButton(
                             label: '±',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _switchSign(),
                             width: 75,
                           ),
                           CalcButton(
                             label: '%',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerAction('%'),
                             width: 75,
                           ),
                           CalcButton(
                             label: '÷',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerAction('÷'),
                             width: 75,
                           ),
                         ],
@@ -146,19 +235,19 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '7',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(7),
                             width: 75,
                           ),
                           CalcButton(
                             label: '8',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(8),
                             width: 75,
                           ),
                           CalcButton(
                             label: '9',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(9),
                             width: 75,
                           ),
                           CalcButton(
@@ -174,25 +263,25 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '4',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(4),
                             width: 75,
                           ),
                           CalcButton(
                             label: '5',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(5),
                             width: 75,
                           ),
                           CalcButton(
                             label: '6',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(6),
                             width: 75,
                           ),
                           CalcButton(
                             label: '-',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerAction('-'),
                             width: 75,
                           ),
                         ],
@@ -202,25 +291,25 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '1',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(1),
                             width: 75,
                           ),
                           CalcButton(
                             label: '2',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(2),
                             width: 75,
                           ),
                           CalcButton(
                             label: '3',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(3),
                             width: 75,
                           ),
                           CalcButton(
                             label: '+',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerAction('+'),
                             width: 75,
                           ),
                         ],
@@ -230,7 +319,7 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '0',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum(0),
                             width: 150,
                           ),
                           CalcButton(
@@ -242,7 +331,7 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '=',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerAction('='),
                             width: 75,
                           ),
                         ],
@@ -304,6 +393,7 @@ class _CalcButtonState extends State<CalcButton> {
         duration: const Duration(milliseconds: 100),
         width: widget.width,
         height: 75,
+        padding: EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: baseColor,
           borderRadius: null,
