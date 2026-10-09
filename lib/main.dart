@@ -46,32 +46,83 @@ class CalcControlScreen extends StatefulWidget {
 class _CalcControlScreenState extends State<CalcControlScreen> {
   bool divideZeroError = false;
   bool isInputNum = false;
-  double ans = 200;
-  double currNum = 0;
+  double ans = 0;
+  String currNum = '';
   double prevNum = 0;
+  // Max Digits displayed in calculator
   int numDigits = 10;
   String prevAction = '';
 
-  void _triggerNum(int numButton) {
+  //Turns the current number from a string to a double
+  double _parseCurrentNumber() {
+    final value = currNum.isEmpty
+        ? ans.toString()
+        : currNum.endsWith('.')
+        ? '${currNum}0'
+        : currNum;
+    return double.parse(value);
+  }
+
+  // Adds to the current number input
+  void _triggerNum(String button) {
+    if (button == '.') {
+      if (isInputNum && currNum.contains('.')) return;
+
+      setState(() {
+        if (divideZeroError || !isInputNum) {
+          ans = 0;
+          currNum = '0.';
+          isInputNum = true;
+          divideZeroError = false;
+        } else if (currNum == '0') {
+          currNum = '0.';
+        } else {
+          currNum += '.';
+        }
+      });
+      return;
+    }
+
+    if (currNum.replaceAll(RegExp(r'[^0-9]'), '').length >= numDigits) {
+      return;
+    }
+
     if (divideZeroError || !isInputNum) {
       setState(() {
         ans = 0;
-        currNum = numButton.toDouble();
+        currNum = button;
         isInputNum = true;
         divideZeroError = false;
       });
+    } else if (currNum == '0') {
+      if (button == '0') {
+        return;
+      } else {
+        setState(() {
+          currNum = button;
+        });
+      }
     } else {
       setState(() {
-        currNum = double.parse('$currNum$numButton');
+        currNum = currNum + button;
       });
     }
   }
 
+  // Swaps the sign of the current number
   void _switchSign() {
     if (isInputNum) {
-      setState(() {
-        currNum *= -1;
-      });
+      if (currNum == '0') {
+        return;
+      } else if (currNum[0] != '-') {
+        setState(() {
+          currNum = '-$currNum';
+        });
+      } else {
+        setState(() {
+          currNum.substring(1);
+        });
+      }
     } else {
       setState(() {
         ans *= -1;
@@ -79,52 +130,109 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
     }
   }
 
+  // Clears the calculator
   void _clearCalc() {
     setState(() {
       ans = 0;
-      currNum = 0;
+      currNum = '';
       prevNum = 0;
+      prevAction = '';
       isInputNum = false;
       divideZeroError = false;
     });
   }
 
+  // Multiplies the previous number with the current number
   void _multiply() {
     setState(() {
-      ans = prevNum * currNum;
+      ans = prevNum * _parseCurrentNumber();
       isInputNum = false;
+      prevNum = ans;
     });
   }
 
+  // Adds the previous number with the current number
   void _add() {
     setState(() {
-      ans = prevNum + currNum;
+      ans = prevNum + _parseCurrentNumber();
       isInputNum = false;
+      prevNum = ans;
     });
   }
 
+  // Subtracts the previous Number with the current Number
   void _subtract() {
     setState(() {
-      ans = prevNum - currNum;
+      ans = prevNum - _parseCurrentNumber();
       isInputNum = false;
+      prevNum = ans;
     });
   }
 
+  // Gets the prev Number divided by current Number
   void _divide() {
-    if (currNum == 0) {
+    if (_parseCurrentNumber() == 0) {
       setState(() {
         divideZeroError = true;
       });
     } else {
       setState(() {
-        ans = prevNum / currNum;
+        ans = prevNum / _parseCurrentNumber();
         isInputNum = false;
+        prevNum = ans;
       });
     }
   }
 
-  void _triggerAction(String actionName) {}
+  // Gets the percent of the current number.
+  void _percent() {
+    if (currNum == '') return;
 
+    setState(() {
+      currNum = '${_parseCurrentNumber() / 100.00}';
+    });
+  }
+
+  // Triggers the corresponding function
+  void _triggerAction(String actionName) {
+    // %
+    if (actionName == '%') {
+      _percent();
+      return;
+    }
+    // Checks if there wasn't a previous action
+    if (prevAction == '') {
+      setState(() {
+        prevAction = actionName;
+        prevNum = _parseCurrentNumber();
+        ans = prevNum;
+        isInputNum = false;
+      });
+
+      return;
+    }
+    // =
+    if (actionName == '=') {
+      if (prevAction != '') {
+        _triggerAction(prevAction);
+        prevAction = '';
+      }
+      return;
+    }
+    // + / - / x / ÷
+    if (prevAction == '+') {
+      _add();
+    } else if (prevAction == '-') {
+      _subtract();
+    } else if (prevAction == 'x') {
+      _multiply();
+    } else if (prevAction == '÷') {
+      _divide();
+    }
+    prevAction = actionName;
+  }
+
+  // Calculator Widget
   @override
   Widget build(BuildContext context) {
     final screenBg = widget.isDark
@@ -187,12 +295,12 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           divideZeroError
                               ? "Cannot Divide by Zero"
                               : isInputNum
-                              ? (currNum == currNum.truncateToDouble())
-                                    ? "${currNum.truncate()}"
-                                    : "${(currNum * 10 * numDigits).round() / (10 * numDigits)}"
+                              ? currNum
                               : (ans == ans.truncateToDouble())
                               ? "${ans.truncate()}"
-                              : "${(ans * 10 * numDigits).round() / 10 * numDigits}",
+                              : ans
+                                    .toStringAsFixed(numDigits)
+                                    .replaceFirst(RegExp(r'\.?0+$'), ''),
                           textAlign: TextAlign.right,
                           style: const TextStyle(
                             fontSize: 28,
@@ -235,25 +343,25 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '7',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(7),
+                            onPressed: () => _triggerNum('7'),
                             width: 75,
                           ),
                           CalcButton(
                             label: '8',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(8),
+                            onPressed: () => _triggerNum('8'),
                             width: 75,
                           ),
                           CalcButton(
                             label: '9',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(9),
+                            onPressed: () => _triggerNum('9'),
                             width: 75,
                           ),
                           CalcButton(
                             label: 'x',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerAction('x'),
                             width: 75,
                           ),
                         ],
@@ -263,19 +371,19 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '4',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(4),
+                            onPressed: () => _triggerNum('4'),
                             width: 75,
                           ),
                           CalcButton(
                             label: '5',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(5),
+                            onPressed: () => _triggerNum('5'),
                             width: 75,
                           ),
                           CalcButton(
                             label: '6',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(6),
+                            onPressed: () => _triggerNum('6'),
                             width: 75,
                           ),
                           CalcButton(
@@ -291,19 +399,19 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '1',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(1),
+                            onPressed: () => _triggerNum('1'),
                             width: 75,
                           ),
                           CalcButton(
                             label: '2',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(2),
+                            onPressed: () => _triggerNum('2'),
                             width: 75,
                           ),
                           CalcButton(
                             label: '3',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(3),
+                            onPressed: () => _triggerNum('3'),
                             width: 75,
                           ),
                           CalcButton(
@@ -319,13 +427,13 @@ class _CalcControlScreenState extends State<CalcControlScreen> {
                           CalcButton(
                             label: '0',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerNum(0),
+                            onPressed: () => _triggerNum('0'),
                             width: 150,
                           ),
                           CalcButton(
                             label: '.',
                             isDark: widget.isDark,
-                            onPressed: () => _triggerAction(''),
+                            onPressed: () => _triggerNum('.'),
                             width: 75,
                           ),
                           CalcButton(
@@ -380,6 +488,7 @@ class _CalcButtonState extends State<CalcButton> {
     final lightShadow = widget.isDark ? const Color(0xFF2F3244) : Colors.white;
 
     return GestureDetector(
+      onTap: widget.onPressed,
       onTapDown: (_) {
         setState(() => isPressed = true);
       },
